@@ -1,0 +1,11 @@
+CREATE DATABASE IF NOT EXISTS dbpenjualan;
+USE dbpenjualan;
+
+CREATE TABLE IF NOT EXISTS t_file (
+  id_file INT AUTO_INCREMENT PRIMARY KEY,
+  judul_file VARCHAR(50) NOT NULL,
+  tanggal_upload DATE NOT NULL,
+  jenis_file VARCHAR(30) NOT NULL,
+  ukuran_file DOUBLE NOT NULL,
+  nama_file VARCHAR(100) NOT NULL
+);
