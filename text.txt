@@ -1,5 +1,7 @@
 Enable-PSRemoting -Force
 Set-Item WSMan:\localhost\Client\TrustedHosts -Value "*" -Force
+New-NetFirewallRule -DisplayName "P2P Shutdown Listener" -Direction Inbound -Protocol UDP -LocalPort 8888 -Action Allow -ErrorAction SilentlyContinue
+
 
 
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\Lsa" /v LimitBlankPasswordUse /t REG_DWORD /d 0 /f
