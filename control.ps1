@@ -1,53 +1,46 @@
 # ==========================================================
-# P2P CONTROLLER - IPC$ AUTHENTICATION VERSION
-# (Tanpa Agent, Hanya Butuh Username/Password Target)
+# P2P CONTROLLER - COMPATIBILITY VERSION (No Timeout Parameter)
 # ==========================================================
 Clear-Host
-$subnet = "192.168.1" # GANTI SESUAI SUBNET KAMU
+$subnet = "192.168.1" # GANTI SESUAI SUBNET KAMU (lihat ipconfig)
 $discoveredPCs = @()
 
-Write-Host "Mencari PC aktif di jaringan (Ping test)..." -ForegroundColor Yellow
+Write-Host "Mencari PC aktif di jaringan $subnet.x (Tunggu sebentar...)" -ForegroundColor Yellow
 
-# Scan IP yang aktif
 for ($i = 1; $i -le 254; $i++) {
     $ip = "$subnet.$i"
-    if (Test-Connection -ComputerName $ip -Count 1 -Quiet -TimeoutSeconds 0.2) {
-        $discoveredPCs += $ip
-        Write-Host "Ditemukan PC di IP: $ip" -ForegroundColor Green
+    # Skip IP sendiri
+    if ($ip -eq $env:COMPUTERNAME) { continue }
+    
+    # Ping standar tanpa TimeoutSeconds agar kompatibel di semua versi Windows
+    if (Test-Connection -ComputerName $ip -Count 1 -Quiet) {
+        
+        # Coba panggil nama PC-nya via PowerShell Remoting
+        $data = Invoke-Command -ComputerName $ip -ScriptBlock { "$env:COMPUTERNAME|$env:USERNAME" } -ErrorAction SilentlyContinue
+        
+        if ($data) {
+            $parts = $data.Split("|")
+            $discoveredPCs += [PSCustomObject]@{ HostName=$parts[0]; IP=$ip; User=$parts[1] }
+            Write-Host "Ditemukan: $($parts[0]) ($ip)" -ForegroundColor Green
+        }
     }
 }
 
 if ($discoveredPCs.Count -eq 0) {
-    Write-Host "Tidak ada PC aktif." -ForegroundColor Red
+    Write-Host "`nTidak ada PC yang bisa diakses." -ForegroundColor Red
+    Write-Host "PENTING: Pastikan Username & Password Windows di semua PC SAMA." -ForegroundColor Yellow
 } else {
-    Write-Host "`nDAFTAR IP PC:" -ForegroundColor Cyan
+    Write-Host "`nDAFTAR PC YANG BISA DIMATIKAN:" -ForegroundColor Cyan
     for ($i = 0; $i -lt $discoveredPCs.Count; $i++) {
-        Write-Host "[$($i + 1)] IP: $($discoveredPCs[$i])"
+        Write-Host "[$($i + 1)] $($discoveredPCs[$i].HostName) | User: $($discoveredPCs[$i].User) | IP: $($discoveredPCs[$i].IP)"
     }
     
-    $choice = Read-Host "Pilih nomor IP"
+    $choice = Read-Host "Pilih nomor PC (0 untuk batal)"
     if ([int]$choice -gt 0 -and [int]$choice -le $discoveredPCs.Count) {
-        $targetIP = $discoveredPCs[[int]$choice - 1]
-        
-        # Minta Kredensial Target
-        $user = Read-Host "Masukkan Username PC target (contoh: PC-Admin)"
-        $pass = Read-Host "Masukkan Password PC target" -AsSecureString
-        $plainPass = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($pass))
-
-        Write-Host "Mencoba otentikasi ke $targetIP..." -ForegroundColor Yellow
-        
-        # Langkah 1: Konek via IPC$
-        net use "\\$targetIP\ipc$" /user:"$user" "$plainPass" /persistent:no > $null 2>&1
-        
-        if ($LASTEXITCODE -eq 0) {
-            Write-Host "Berhasil login! Mengirim perintah shutdown..." -ForegroundColor Green
-            # Langkah 2: Shutdown
-            shutdown /m "\\$targetIP" /s /f /t 0
-            # Langkah 3: Bersihkan koneksi
-            net use "\\$targetIP\ipc$" /delete /y > $null 2>&1
-        } else {
-            Write-Host "GAGAL LOGIN! Cek Username/Password atau pastikan Firewall mengizinkan File Sharing." -ForegroundColor Red
-        }
+        $target = $discoveredPCs[[int]$choice - 1]
+        Write-Host "Mematikan $($target.HostName)..." -ForegroundColor Red
+        Stop-Computer -ComputerName $target.IP -Force
+        Write-Host "Perintah terkirim." -ForegroundColor Green
     }
 }
 Pause
