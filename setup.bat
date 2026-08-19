@@ -1,8 +1,6 @@
 @echo off
 :: ====================================================================
-:: AUTOMATED P2P SHUTDOWN SETUP & AGENT INSTALLER (FIXED PUBLIC NETWORK)
-:: Target Folder : C:\crypt\
-:: Target Script : C:\crypt\agent.ps1
+:: SETUP PC TARGET (Untuk Metode Shutdown Remote IPC$ Authentication)
 :: ====================================================================
 
 :: 1. Force Auto-Elevate to Administrator
@@ -14,38 +12,33 @@ if %errorLevel% neq 0 (
 )
 
 echo ===================================================
-echo   MEMULAI KONFIGURASI P2P SHUTDOWN AGENT
+echo   MEMULAI KONFIGURASI PC TARGET (REMOTE SHUTDOWN)
 echo ===================================================
 echo.
 
-:: 2. Ubah Profil Jaringan ke Private (Agar WinRM Tidak Error)
-echo [0/4] Mengubah profil jaringan ke Private...
-powershell -Command "Get-NetConnectionProfile | Set-NetConnectionProfile -NetworkCategory Private -ErrorAction SilentlyContinue"
+:: 2. Ubah Profil Jaringan ke Private (Agar sharing services aktif)
+echo [1/5] Mengatur profil jaringan ke Private...
+powershell -Command "Get-NetConnectionProfile | Set-NetConnectionProfile -NetworkCategory Private -ErrorAction SilentlyContinue" >nul
 
-:: 3. Konfigurasi PowerShell Remoting & TrustedHosts (Dengan -SkipNetworkProfileCheck)
-echo [1/4] Mengaktifkan PowerShell Remoting...
-powershell -Command "Enable-PSRemoting -SkipNetworkProfileCheck -Force; Set-Item WSMan:\localhost\Client\TrustedHosts -Value '*' -Force"
+:: 3. Mengaktifkan File and Printer Sharing (Wajib untuk net use / IPC$)
+echo [2/5] Mengaktifkan File and Printer Sharing...
+netsh advfirewall firewall set rule group="File and Printer Sharing" new enable=Yes >nul
 
-:: 4. Konfigurasi Firewall Rule untuk UDP Port 8888
-echo [2/4] Membuka Port UDP 8888 di Firewall...
-powershell -Command "New-NetFirewallRule -DisplayName 'P2P Shutdown Listener' -Direction Inbound -Protocol UDP -LocalPort 8888 -Action Allow -ErrorAction SilentlyContinue" >nul
+:: 4. Bypass UAC Remote (Mengizinkan remote shutdown tanpa error Access Denied)
+echo [3/5] Mengatur kebijakan Remote Admin (UAC)...
+reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" /v LocalAccountTokenFilterPolicy /t REG_DWORD /d 1 /f >nul
 
-:: 5. Buka Izin Limit Blank Password di Registry
-echo [3/4] Mengatur Policy Password Registry...
+:: 5. Mengizinkan Blank Password (Jika ada user tanpa password)
+echo [4/5] Mengatur kebijakan Password kosong...
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\Lsa" /v LimitBlankPasswordUse /t REG_DWORD /d 0 /f >nul
 
-:: 6. Buat Task Scheduler Auto-Start pada System Startup
-echo [4/4] Daftarkan Agent ke Task Scheduler...
-schtasks /create /tn "P2P_Shutdown_Agent" /tr "powershell.exe -ExecutionPolicy Bypass -WindowStyle Hidden -File \"C:\crypt\agent.ps1\"" /sc onstart /ru "SYSTEM" /rl highest /f >nul
-
-:: 7. Jalankan Agent Pertama Kali Secara Instant
-echo.
-echo Jalankan Agent sekarang...
-schtasks /run /tn "P2P_Shutdown_Agent" >nul
+:: 6. Mengaktifkan PowerShell Remoting (Fleksibilitas tambahan)
+echo [5/5] Mengaktifkan PowerShell Remoting...
+powershell -Command "Enable-PSRemoting -SkipNetworkProfileCheck -Force" >nul
 
 echo.
 echo ===================================================
-echo   SETUP BERHASIL! PC SIAP DIGUNAKAN DI JARINGAN P2P
+echo   SETUP BERHASIL! PC SIAP MENERIMA PERINTAH REMOTE
 echo ===================================================
 echo.
 pause
