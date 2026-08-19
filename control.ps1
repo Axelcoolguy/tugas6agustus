@@ -1,46 +1,53 @@
 # ==========================================================
-# P2P CONTROLLER - COMPATIBILITY VERSION (No Timeout Parameter)
+# P2P CONTROLLER - MANUAL IP LIST (STABIL)
 # ==========================================================
 Clear-Host
-$subnet = "192.168.1" # GANTI SESUAI SUBNET KAMU (lihat ipconfig)
-$discoveredPCs = @()
 
-Write-Host "Mencari PC aktif di jaringan $subnet.x (Tunggu sebentar...)" -ForegroundColor Yellow
+# --- INPUT MANUAL IP DISINI ---
+$pcList = @(
+    @{ Name = "PC Kasir";   IP = "192.168.1.10" },
+    @{ Name = "PC Gudang";  IP = "192.168.1.11" },
+    @{ Name = "PC Admin";   IP = "192.168.1.12" }
+)
 
-for ($i = 1; $i -le 254; $i++) {
-    $ip = "$subnet.$i"
-    # Skip IP sendiri
-    if ($ip -eq $env:COMPUTERNAME) { continue }
-    
-    # Ping standar tanpa TimeoutSeconds agar kompatibel di semua versi Windows
-    if (Test-Connection -ComputerName $ip -Count 1 -Quiet) {
-        
-        # Coba panggil nama PC-nya via PowerShell Remoting
-        $data = Invoke-Command -ComputerName $ip -ScriptBlock { "$env:COMPUTERNAME|$env:USERNAME" } -ErrorAction SilentlyContinue
-        
-        if ($data) {
-            $parts = $data.Split("|")
-            $discoveredPCs += [PSCustomObject]@{ HostName=$parts[0]; IP=$ip; User=$parts[1] }
-            Write-Host "Ditemukan: $($parts[0]) ($ip)" -ForegroundColor Green
-        }
-    }
+Write-Host "Mengecek status PC..." -ForegroundColor Yellow
+
+$i = 1
+foreach ($pc in $pcList) {
+    $status = if (Test-Connection -ComputerName $pc.IP -Count 1 -Quiet) { "ONLINE" } else { "OFFLINE" }
+    $color = if ($status -eq "ONLINE") { "Green" } else { "Red" }
+    Write-Host "[$i] $($pc.Name) ($($pc.IP)) - STATUS: $status" -ForegroundColor $color
+    $pc.Status = $status
+    $i++
 }
 
-if ($discoveredPCs.Count -eq 0) {
-    Write-Host "`nTidak ada PC yang bisa diakses." -ForegroundColor Red
-    Write-Host "PENTING: Pastikan Username & Password Windows di semua PC SAMA." -ForegroundColor Yellow
-} else {
-    Write-Host "`nDAFTAR PC YANG BISA DIMATIKAN:" -ForegroundColor Cyan
-    for ($i = 0; $i -lt $discoveredPCs.Count; $i++) {
-        Write-Host "[$($i + 1)] $($discoveredPCs[$i].HostName) | User: $($discoveredPCs[$i].User) | IP: $($discoveredPCs[$i].IP)"
-    }
+Write-Host "------------------------------------------"
+$choice = Read-Host "Pilih nomor PC (0 untuk batal)"
+
+if ([int]$choice -gt 0 -and [int]$choice -le $pcList.Count) {
+    $target = $pcList[[int]$choice - 1]
     
-    $choice = Read-Host "Pilih nomor PC (0 untuk batal)"
-    if ([int]$choice -gt 0 -and [int]$choice -le $discoveredPCs.Count) {
-        $target = $discoveredPCs[[int]$choice - 1]
-        Write-Host "Mematikan $($target.HostName)..." -ForegroundColor Red
-        Stop-Computer -ComputerName $target.IP -Force
-        Write-Host "Perintah terkirim." -ForegroundColor Green
+    if ($target.Status -eq "OFFLINE") {
+        Write-Host "PC sedang mati/offline!" -ForegroundColor Red
+        Pause; exit
+    }
+
+    Write-Host "--- LOGIN KE $($target.Name) ---"
+    $user = Read-Host "Masukkan Username PC target"
+    $pass = Read-Host "Masukkan Password PC target" -AsSecureString
+    $plainPass = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($pass))
+
+    Write-Host "Menghubungkan..." -ForegroundColor Yellow
+    
+    # Konek & Shutdown
+    net use "\\$($target.IP)\ipc$" /user:"$user" "$plainPass" /persistent:no > $null 2>&1
+    
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "Berhasil login! Mematikan PC..." -ForegroundColor Green
+        shutdown /m "\\$($target.IP)" /s /f /t 0
+        net use "\\$($target.IP)\ipc$" /delete /y > $null 2>&1
+    } else {
+        Write-Host "GAGAL LOGIN! Cek User/Pass atau cek Firewall PC target." -ForegroundColor Red
     }
 }
 Pause
