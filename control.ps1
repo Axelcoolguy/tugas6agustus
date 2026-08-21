@@ -1,53 +1,41 @@
 # ==========================================================
-# P2P CONTROLLER - MANUAL IP LIST (STABIL)
+# P2P SHUTDOWN GRID CONTROLLER
 # ==========================================================
-Clear-Host
-
-# --- INPUT MANUAL IP DISINI ---
+# Input IP PC Target kamu di sini (Urutan 1-10)
 $pcList = @(
-    @{ Name = "PC Kasir";   IP = "192.168.1.10" },
-    @{ Name = "PC Gudang";  IP = "192.168.1.11" },
-    @{ Name = "PC Admin";   IP = "192.168.1.12" }
+    @{Name="PC 1";  IP="192.168.1.10"}, @{Name="PC 2";  IP="192.168.1.11"}, @{Name="PC 3";  IP="192.168.1.12"}, @{Name="PC 4";  IP="192.168.1.13"}, @{Name="PC 5";  IP="192.168.1.14"},
+    @{Name="PC 6";  IP="192.168.1.15"}, @{Name="PC 7";  IP="192.168.1.16"}, @{Name="PC 8";  IP="192.168.1.17"}, @{Name="PC 9";  IP="192.168.1.18"}, @{Name="PC 10"; IP="192.168.1.19"}
 )
 
-Write-Host "Mengecek status PC..." -ForegroundColor Yellow
-
-$i = 1
-foreach ($pc in $pcList) {
-    $status = if (Test-Connection -ComputerName $pc.IP -Count 1 -Quiet) { "ONLINE" } else { "OFFLINE" }
-    $color = if ($status -eq "ONLINE") { "Green" } else { "Red" }
-    Write-Host "[$i] $($pc.Name) ($($pc.IP)) - STATUS: $status" -ForegroundColor $color
-    $pc.Status = $status
-    $i++
+function Show-Grid {
+    Clear-Host
+    Write-Host "================= GRID MONITOR (2x5) =================" -ForegroundColor Cyan
+    $statusList = @()
+    for($i=0; $i -lt 10; $i++){
+        $isUp = Test-Connection -ComputerName $pcList[$i].IP -Count 1 -Quiet
+        $statusList += if($isUp) { "ON" } else { "OFF" }
+    }
+    
+    # Baris 1
+    for($i=0; $i -lt 5; $i++){ Write-Host "[$($i+1)] $($pcList[$i].Name): " -NoNewline; if($statusList[$i] -eq "ON") { Write-Host " ON " -ForegroundColor Green -BackgroundColor Black -NoNewline } else { Write-Host " OFF" -ForegroundColor Red -BackgroundColor Black -NoNewline }; Write-Host " | " -NoNewline }
+    Write-Host ""
+    # Baris 2
+    for($i=5; $i -lt 10; $i++){ Write-Host "[$($i+1)] $($pcList[$i].Name): " -NoNewline; if($statusList[$i] -eq "ON") { Write-Host " ON " -ForegroundColor Green -BackgroundColor Black -NoNewline } else { Write-Host " OFF" -ForegroundColor Red -BackgroundColor Black -NoNewline }; Write-Host " | " -NoNewline }
+    
+    Write-Host "`n`n[A] Shutdown SEMUA | [R] Refresh | [0] Keluar" -ForegroundColor Yellow
 }
 
-Write-Host "------------------------------------------"
-$choice = Read-Host "Pilih nomor PC (0 untuk batal)"
-
-if ([int]$choice -gt 0 -and [int]$choice -le $pcList.Count) {
-    $target = $pcList[[int]$choice - 1]
-    
-    if ($target.Status -eq "OFFLINE") {
-        Write-Host "PC sedang mati/offline!" -ForegroundColor Red
-        Pause; exit
-    }
-
-    Write-Host "--- LOGIN KE $($target.Name) ---"
-    $user = Read-Host "Masukkan Username PC target"
-    $pass = Read-Host "Masukkan Password PC target" -AsSecureString
-    $plainPass = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($pass))
-
-    Write-Host "Menghubungkan..." -ForegroundColor Yellow
-    
-    # Konek & Shutdown
-    net use "\\$($target.IP)\ipc$" /user:"$user" "$plainPass" /persistent:no > $null 2>&1
-    
-    if ($LASTEXITCODE -eq 0) {
-        Write-Host "Berhasil login! Mematikan PC..." -ForegroundColor Green
+while($true){
+    Show-Grid
+    $in = Read-Host "`nInput Perintah"
+    if($in -eq '0') { break }
+    if($in -eq 'R') { continue }
+    if($in -eq 'A') {
+        $confirm = Read-Host "YAKIN MATIKAN SEMUA? (y/n)"
+        if($confirm -eq 'y') { foreach($pc in $pcList) { shutdown /m "\\$($pc.IP)" /s /f /t 0 } }
+    } elseif([int]$in -gt 0 -and [int]$in -le 10) {
+        $target = $pcList[[int]$in - 1]
         shutdown /m "\\$($target.IP)" /s /f /t 0
-        net use "\\$($target.IP)\ipc$" /delete /y > $null 2>&1
-    } else {
-        Write-Host "GAGAL LOGIN! Cek User/Pass atau cek Firewall PC target." -ForegroundColor Red
+        Write-Host "Perintah dikirim ke $($target.Name)" -ForegroundColor Green; Start-Sleep -Seconds 2
     }
 }
-Pause
