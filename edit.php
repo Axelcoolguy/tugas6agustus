@@ -20,7 +20,6 @@ if (isset($_POST['update'])) {
         $tmp_name  = $_FILES['foto']['tmp_name'];
         $foto_baru = time() . '_' . $foto;
         
-        // Hapus foto lama jika ada
         if (file_exists("uploads/" . $data['foto'])) {
             unlink("uploads/" . $data['foto']);
         }
