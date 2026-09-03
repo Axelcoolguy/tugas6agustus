@@ -1,11 +1,10 @@
-CREATE DATABASE IF NOT EXISTS dbpenjualan;
-USE dbpenjualan;
+CREATE DATABASE db_barang_bukti;
+USE db_barang_bukti;
 
-CREATE TABLE IF NOT EXISTS t_file (
-  id_file INT AUTO_INCREMENT PRIMARY KEY,
-  judul_file VARCHAR(50) NOT NULL,
-  tanggal_upload DATE NOT NULL,
-  jenis_file VARCHAR(30) NOT NULL,
-  ukuran_file DOUBLE NOT NULL,
-  nama_file VARCHAR(100) NOT NULL
+CREATE TABLE barang_bukti (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    jenis_barang VARCHAR(100) NOT NULL,
+    nama_barang VARCHAR(150) NOT NULL,
+    jumlah INT NOT NULL,
+    foto VARCHAR(255) NOT NULL
 );
