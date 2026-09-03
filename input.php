@@ -13,7 +13,6 @@ if (isset($_POST['submit'])) {
     $jumlah = $_POST['jumlah'];
     $satuan = $_POST['satuan'];
 
-    // File Upload
     $foto      = $_FILES['foto']['name'];
     $tmp_name  = $_FILES['foto']['tmp_name'];
     $foto_baru = time() . '_' . $foto;
