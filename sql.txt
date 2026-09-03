@@ -1,18 +1,15 @@
 CREATE DATABASE IF NOT EXISTS db_barang_bukti;
 USE db_barang_bukti;
 
--- Tabel User
 CREATE TABLE IF NOT EXISTS users (
     id INT AUTO_INCREMENT PRIMARY KEY,
     username VARCHAR(50) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL
 );
 
--- Contoh insert user default (Username: admin | Password: admin123)
--- Disarankan di aplikasi nyata memakai MD5 atau password_hash
-INSERT INTO users (username, password) VALUES ('admin', 'admin123');
+-- Password 'admin123' diisi dalam bentuk hash MD5 (0192023a7bbd73250516f069df18b500)
+INSERT INTO users (username, password) VALUES ('admin', MD5('admin123'));
 
--- Tabel Barang Bukti
 CREATE TABLE IF NOT EXISTS barang_bukti (
     id INT AUTO_INCREMENT PRIMARY KEY,
     jenis_barang VARCHAR(100) NOT NULL,
