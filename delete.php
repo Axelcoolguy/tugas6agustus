@@ -1,17 +1,14 @@
 <?php
-include"koneksi.php";
+include 'koneksi.php';
+$id = $_GET['id'];
 
-$tampil=mysqli_query($koneksi,"SELECT * FROM t_file WHERE id_file='$_GET[id_file]'");
-$data=mysqli_fetch_array($tampil);
-
-$hapus=mysqli_query($koneksi,"DELETE FROM t_file WHERE id_file='$_GET[id_file]'");
-
-if($hapus){
-    if(file_exists("file/$data[nama_file]")){
-        unlink("file/$data[nama_file]");
-    }
-    header("location:index.php");
-}else{
-    echo"Gagal menghapus";
+// Ambil info file foto lalu hapus dari folder uploads
+$data = mysqli_fetch_array(mysqli_query($koneksi, "SELECT foto FROM barang_bukti WHERE id='$id'"));
+if (file_exists("uploads/" . $data['foto'])) {
+    unlink("uploads/" . $data['foto']);
 }
+
+// Hapus record dari database
+mysqli_query($koneksi, "DELETE FROM barang_bukti WHERE id='$id'");
+header("Location: index.php");
 ?>
