@@ -2,7 +2,6 @@
 session_start();
 include 'koneksi.php';
 
-// Jika sudah login, langsung lempar ke index
 if (isset($_SESSION['username'])) {
     header("Location: index.php");
     exit();
@@ -12,9 +11,9 @@ $error = '';
 
 if (isset($_POST['login'])) {
     $username = mysqli_real_escape_string($koneksi, $_POST['username']);
-    $password = $_POST['password'];
+    
+    $password = md5($_POST['password']); 
 
-    // Query cek user di database yang sama
     $query = mysqli_query($koneksi, "SELECT * FROM users WHERE username='$username' AND password='$password'");
     
     if (mysqli_num_rows($query) > 0) {
