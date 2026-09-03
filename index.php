@@ -1,53 +1,42 @@
 <?php
-include "koneksi.php";
+include 'koneksi.php';
+$query = mysqli_query($koneksi, "SELECT * FROM barang_bukti");
 ?>
+
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Daftar File</title>
-    <link rel="stylesheet" type="text/css" href="style.css">
+    <title>Data Barang Bukti</title>
 </head>
 <body>
-
-<div class="container">
-    <h2>Daftar File</h2>
-
-    <a href="form_upload.php" class="btn-add">+ Upload File Baru</a>
-
-    <table class="data-table">
-        <thead>
-            <tr>
-                <th>No</th>
-                <th>Judul File</th>
-                <th>Tanggal</th>
-                <th>Jenis File</th>
-                <th>Ukuran</th>
-                <th>Aksi</th>
-            </tr>
-        </thead>
-        <tbody>
-            <?php
-            $no = 1;
-            $tampil = mysqli_query($koneksi, "SELECT * FROM t_file ORDER BY id_file DESC");
-            while ($data = mysqli_fetch_array($tampil)) {
-                $ukuran_kb = round($data['ukuran_file'] / 1024, 2) . " KB";
-                $tanggal = date('d/m/Y', strtotime($data['tanggal_upload']));
-            ?>
-            <tr>
-                <td><?= $no++; ?></td>
-                <td><?= htmlspecialchars($data['judul_file']); ?></td>
-                <td><?= $tanggal; ?></td>
-                <td><?= htmlspecialchars($data['jenis_file']); ?></td>
-                <td><?= $ukuran_kb; ?></td>
-                <td>
-                    <a href="download.php?id_file=<?= $data['id_file']; ?>" class="btn-action btn-download">Download</a>
-                    <a href="delete.php?id_file=<?= $data['id_file']; ?>" class="btn-action btn-delete" onclick="return confirm('Yakin ingin menghapus file ini?')">Delete</a>
-                </td>
-            </tr>
-            <?php } ?>
-        </tbody>
+    <h2>Daftar Barang Bukti</h2>
+    <a href="input.php">+ Tambah Data</a><br><br>
+    
+    <table border="1" cellpadding="8" cellspacing="0">
+        <tr>
+            <th>ID</th>
+            <th>Jenis Barang</th>
+            <th>Nama Barang</th>
+            <th>Jumlah</th>
+            <th>Foto</th>
+            <th>Aksi</th>
+        </tr>
+        <?php while ($d = mysqli_fetch_array($query)) : ?>
+        <tr>
+            <td><?= $d['id']; ?></td>
+            <td><?= $d['jenis_barang']; ?></td>
+            <td><?= $d['nama_barang']; ?></td>
+            <td><?= $d['jumlah']; ?></td>
+            <td>
+                <img src="uploads/<?= $d['foto']; ?>" width="80"><br>
+                <a href="download.php?file=<?= $d['foto']; ?>">Download</a>
+            </td>
+            <td>
+                <a href="edit.php?id=<?= $d['id']; ?>">Edit</a> | 
+                <a href="delete.php?id=<?= $d['id']; ?>" onclick="return confirm('Yakin hapus?')">Hapus</a>
+            </td>
+        </tr>
+        <?php endwhile; ?>
     </table>
-</div>
-
 </body>
 </html>
