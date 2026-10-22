@@ -1,0 +1,16 @@
+# 1. Matikan proses background (WScript dan PowerShell agent)
+Stop-Process -Name "wscript" -Force -ErrorAction SilentlyContinue
+Get-WmiObject Win32_Process | Where-Object { $_.CommandLine -like "*WindowsCodexSys*" } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
+
+# 2. Hapus Registry Run Key
+$RegistryPath = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run"
+Remove-ItemProperty -Path $RegistryPath -Name "WindowsCodexSys" -ErrorAction SilentlyContinue
+
+# 3. Reset atribut folder (jika Hidden/System) lalu hapus permanen beserta isinya
+$FolderPalsu = "C:\ProgramData\WindowsCodexSys"
+if (Test-Path $FolderPalsu) {
+    attrib -h -s "$FolderPalsu\*.*" /s /d 2>$null
+    Remove-Item -Path $FolderPalsu -Recurse -Force -ErrorAction SilentlyContinue
+}
+
+Write-Host "[+] Cleanup Sempurna: Program dihentikan, Run Key dicopot, folder dibersihkan!" -ForegroundColor Green
